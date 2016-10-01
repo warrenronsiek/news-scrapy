@@ -27,17 +27,23 @@ class VoxSpider(scrapy.Spider):
         i = ItemLoader(item=Article(), response=response)
         if response.css('body > div.off-canvas-wrap > div > section > div:nth-child(2) > div > div.article-lede.snippet.wide > h1') != []:
             i.add_css('title', 'body > div.off-canvas-wrap > div > section > div:nth-child(2) > div > div.article-lede.snippet.wide > h1')
-        elif response.css('body > section > section > div:nth-child(2) > div > div.c-entry-hero__header-wrap > h1') == []:
-            i.add_css('title', '# top > div > div.l-container > div > div.m-entry-feature__head-text > h1')
-        else:
+        elif response.css('body > section > section > div:nth-child(2) > div > div.c-entry-hero__header-wrap > h1') != []:
             i.add_css('title', 'body > section > section > div:nth-child(2) > div > div.c-entry-hero__header-wrap > h1')
+        elif response.css('#top > div > div.l-container > div > div.m-entry-feature__head-text > h1') != []:
+            i.add_css('title', '#top > div > div.l-container > div > div.m-entry-feature__head-text > h1')
+        elif response.css('body > div.row.topper > div > h1') != []:
+            i.add_css('title', 'body > div.row.topper > div > h1')
+        elif response.css('body > section > section > div:nth-child(2) > div > div.c-entry-hero__header-wrap > h1') != []:
+            i.add_css('title', 'body > section > section > div:nth-child(2) > div > div.c-entry-hero__header-wrap > h1')
+        else:
+            i.add_value('title', 'NULL')
 
         if response.css('body > div.off-canvas-wrap > div > section > div:nth-child(2) > div > div.article-lede.snippet.wide > p') != []:
             authordiv = response.css('body > div.off-canvas-wrap > div > section > div:nth-child(2) > div > div.article-lede.snippet.wide > p').extract_first()
             authorname = BeautifulSoup(authordiv).text
             i.add_value('author', authorname)
             i.add_value('date', 'NULL')
-        elif response.css('body > section > section > div:nth-child(2) > div > div.c-byline > span:nth-child(1) > a') == []:
+        elif response.css('#top > div > div.l-container > div > div.m-entry-feature__head-text > p > a') != []:
             authors = response.css('#top > div > div.l-container > div > div.m-entry-feature__head-text > p > a')
             names = [BeautifulSoup(n.extract()).text for n in authors]
             i.add_value('author', ', '.join(names))
@@ -45,9 +51,25 @@ class VoxSpider(scrapy.Spider):
             date = datefinder.find_dates(authordatediv)
             datestr = [str(d) for d in date]
             i.add_value('date', datestr[0])
-        else:
+        elif response.css('body > div.row.topper > div > div.byline') != []:
+            authors = response.css('#top > div > div.l-container > div > div.m-entry-feature__head-text > p > a')
+            names = [BeautifulSoup(n.extract()).text for n in authors]
+            i.add_value('author', ', '.join(names))
+            authordatediv = response.css(
+                '#top > div > div.l-container > div > div.m-entry-feature__head-text > p').extract_first()
+            date = datefinder.find_dates(authordatediv)
+            datestr = [str(d) for d in date]
+            i.add_value('date', datestr[0])
+        elif response.css('body > div > div.c-entry-hero.c-entry-hero--feature.c-entry-hero--unison-default.image-light.has-image > div.c-entry-hero__content.l-segment.l-feature > div') != []:
+            i.add_css('author',
+                      'body > div > div.c-entry-hero.c-entry-hero--feature.c-entry-hero--unison-default.image-light.has-image > div.c-entry-hero__content.l-segment.l-feature > div > span:nth-child(1) > a')
+            i.add_css('date', 'body > div > div.c-entry-hero.c-entry-hero--feature.c-entry-hero--unison-default.image-light.has-image > div.c-entry-hero__content.l-segment.l-feature > div > span:nth-child(2)')
+        elif response.css('body > section > section > div:nth-child(2) > div > div.c-byline > span:nth-child(1) > a') != []:
             i.add_css('author', 'body > section > section > div:nth-child(2) > div > div.c-byline > span:nth-child(1) > a')
             i.add_css('date', 'body > section > section > div:nth-child(2) > div > div.c-byline > span:nth-child(2)')
+        else:
+            i.add_value('author', 'NULL')
+            i.add_value('date', 'NULL')
 
         s = BeautifulSoup(response.body, 'lxml')
         ptags = s.find_all('p')
